@@ -1,0 +1,575 @@
+
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "API Livraria - Livros e Autores",
+    "version": "1.0.0",
+    "description": "Documentação da API Livraria com autenticação JWT, senhas BCrypt e controle de acesso RBAC."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor local"
+    }
+  ],
+  "tags": [
+    { "name": "Autenticação" },
+    { "name": "Livros" },
+    { "name": "Autores" },
+    { "name": "Comentários" }
+  ],
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["Autenticação"],
+        "summary": "Cadastrar usuário",
+        "description": "Cria uma nova conta com perfil USER. A senha é armazenada utilizando BCrypt.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Registro"
+              },
+              "example": {
+                "nome": "Maria Silva",
+                "email": "maria@example.com",
+                "senha": "senhaForte123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuário cadastrado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "description": "E-mail já cadastrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Autenticação"],
+        "summary": "Autenticar usuário",
+        "description": "Valida o e-mail e a senha e retorna um token JWT para acessar rotas protegidas.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              },
+              "example": {
+                "email": "maria@example.com",
+                "senha": "senhaForte123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login realizado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResposta"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/livros": {
+      "get": {
+        "tags": ["Livros"],
+        "summary": "Listar livros",
+        "description": "Retorna todos os livros cadastrados. Rota pública.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Lista de livros",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Livro"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Livros"],
+        "summary": "Cadastrar livro",
+        "description": "Cria um livro. Acesso exclusivo para ADMIN.",
+        "security": [
+          { "bearerAuth": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoLivro"
+              },
+              "example": {
+                "titulo": "Dom Casmurro",
+                "ano": 1899,
+                "autor_id": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Livro criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Livro"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/livros/{id}": {
+      "get": {
+        "tags": ["Livros"],
+        "summary": "Consultar livro por ID",
+        "description": "Busca os dados de um livro específico. Rota pública.",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LivroId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Livro encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Livro"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/livros/{id}/comentarios": {
+      "post": {
+        "tags": ["Comentários"],
+        "summary": "Adicionar comentário",
+        "description": "Permite que usuários autenticados com perfil USER ou ADMIN comentem em um livro.",
+        "security": [
+          { "bearerAuth": [] }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LivroId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoComentario"
+              },
+              "example": {
+                "texto": "Excelente livro, recomendo a leitura!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comentário criado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comentario"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/autores": {
+      "post": {
+        "tags": ["Autores"],
+        "summary": "Cadastrar autor",
+        "description": "Cadastra um novo autor. Acesso exclusivo para ADMIN.",
+        "security": [
+          { "bearerAuth": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoAutor"
+              },
+              "example": {
+                "nome": "Machado de Assis",
+                "nacionalidade": "Brasileira"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Autor criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Autor"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Faça login, copie o token JWT e informe no botão Authorize."
+      }
+    },
+    "parameters": {
+      "LivroId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Identificador do livro",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "example": 1
+        }
+      }
+    },
+    "schemas": {
+      "Erro": {
+        "type": "object",
+        "required": ["erro"],
+        "properties": {
+          "erro": {
+            "type": "string",
+            "example": "Operação não permitida."
+          }
+        }
+      },
+      "Registro": {
+        "type": "object",
+        "required": ["nome", "email", "senha"],
+        "properties": {
+          "nome": {
+            "type": "string",
+            "example": "Maria Silva"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "maria@example.com"
+          },
+          "senha": {
+            "type": "string",
+            "format": "password",
+            "minLength": 6,
+            "example": "senhaForte123"
+          }
+        }
+      },
+      "Usuario": {
+        "type": "object",
+        "required": ["id", "nome", "email", "role"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "nome": {
+            "type": "string",
+            "example": "Maria Silva"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "maria@example.com"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["USER", "ADMIN"],
+            "example": "USER"
+          }
+        }
+      },
+      "Login": {
+        "type": "object",
+        "required": ["email", "senha"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "maria@example.com"
+          },
+          "senha": {
+            "type": "string",
+            "format": "password",
+            "example": "senhaForte123"
+          }
+        }
+      },
+      "LoginResposta": {
+        "type": "object",
+        "required": ["usuario", "token"],
+        "properties": {
+          "usuario": {
+            "$ref": "#/components/schemas/Usuario"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token JWT para autenticação",
+            "example": "eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.assinatura"
+          }
+        }
+      },
+      "Autor": {
+        "type": "object",
+        "required": ["id", "nome", "nacionalidade"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "nome": {
+            "type": "string",
+            "example": "Machado de Assis"
+          },
+          "nacionalidade": {
+            "type": "string",
+            "example": "Brasileira"
+          }
+        }
+      },
+      "NovoAutor": {
+        "type": "object",
+        "required": ["nome"],
+        "properties": {
+          "nome": {
+            "type": "string",
+            "example": "Clarice Lispector"
+          },
+          "nacionalidade": {
+            "type": "string",
+            "example": "Brasileira"
+          }
+        }
+      },
+      "Livro": {
+        "type": "object",
+        "required": ["id", "titulo", "ano", "autor_id", "comentarios"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "titulo": {
+            "type": "string",
+            "example": "Dom Casmurro"
+          },
+          "ano": {
+            "type": "integer",
+            "example": 1899
+          },
+          "autor_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "autor_nome": {
+            "type": "string",
+            "example": "Machado de Assis"
+          },
+          "comentarios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Comentario"
+            }
+          }
+        }
+      },
+      "NovoLivro": {
+        "type": "object",
+        "required": ["titulo", "autor_id"],
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "example": "Dom Casmurro"
+          },
+          "ano": {
+            "type": "integer",
+            "example": 1899
+          },
+          "autor_id": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "NovoComentario": {
+        "type": "object",
+        "required": ["texto"],
+        "properties": {
+          "texto": {
+            "type": "string",
+            "example": "Uma leitura fascinante!"
+          }
+        }
+      },
+      "Comentario": {
+        "type": "object",
+        "required": ["id", "texto"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "autor_nome": {
+            "type": "string",
+            "example": "Maria Silva"
+          },
+          "texto": {
+            "type": "string",
+            "example": "Uma leitura fascinante!"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "400 - Dados inválidos ou campos obrigatórios ausentes",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "401 - Credenciais inválidas ou token ausente, expirado ou inválido",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "403 - Usuário sem permissão ADMIN",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "404 - Recurso não encontrado",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "500 - Erro interno do servidor",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Erro"
+            }
+          }
+        }
+      }
+    }
+  }
+}

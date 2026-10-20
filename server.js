@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const configurarSwagger = require('./docs/swagger');
 
 const authRoutes = require('./routes/authRoutes');
 const livroRoutes = require('./routes/livroRoutes');
@@ -11,6 +12,8 @@ const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
+// Configuração da documentação Swagger
+configurarSwagger(app);
 
 // Agrupamento Semântico de Rotas (RESTful /api/v1)
 app.use('/api/v1/auth', authRoutes);

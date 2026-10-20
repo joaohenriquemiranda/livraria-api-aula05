@@ -6,7 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "chave_super_secreta_livraria_2026"
 const SALT_ROUNDS = 10;
 
 class AuthService {
-  async registrar({ nome, email, senha, role }) {
+  async registrar({ nome, email, senha }) {
     if (!nome || !email || !senha) {
       throw { status: 400, message: "Campos obrigatórios ausentes: nome, email ou senha." };
     }
@@ -24,7 +24,7 @@ class AuthService {
       nome: nome.trim(),
       email: emailNormalizado,
       senha_hash,
-      role: role ? role.toUpperCase() : "USER"
+      role: "USER"
     });
 
     const { senha_hash: _, ...usuarioRetorno } = novoUsuario;

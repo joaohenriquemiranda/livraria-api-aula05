@@ -9,13 +9,17 @@ class LivroController {
     }
   }
 
-  show(req, res, next) {
-    try {
-      return res.status(200).json(livroService.buscarPorId(req.params.id));
-    } catch (error) {
-      next(error);
-    }
+  
+show(req, res, next) {
+  try {
+    const livro = livroService.buscarPorId(req.params.id);
+
+    return res.status(200).json(livro);
+  } catch (error) {
+    next(error);
   }
+}
+
 
   store(req, res, next) {
     try {
